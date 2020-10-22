@@ -1,0 +1,633 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Canvas Constellations</title>
+    <style type="text/css">
+        html, body {
+            margin:0;
+            padding:0;
+            height:100%;
+            background-color:black;
+        }
+
+        .day {
+            background: url('Sky02.png') no-repeat;
+            background-size:cover;
+        }
+
+        .night {
+            background: url('Sky03.png') no-repeat;
+            background-size:cover;
+        }
+
+        #c
+        #container {
+            overflow:hidden;
+            position:relative;
+        }
+        h1 {
+            position: absolute;
+            left: 0;
+            right: 0;
+            text-align: center;
+            top: 360px;
+            color: white;
+            font-family: 'Rancho', sans-serif;
+            font-size: 100px;
+        }
+        #stars {
+            z-index:0;
+            display: block;
+            margin: 0 auto;
+        }
+
+    </style>
+
+<body data-rsssl=1>
+
+<h1 id="u"> </h1>
+<div id="container" style="width: 100%; height: 100%">
+    <canvas id="stars" width="1920" height="600"></canvas>
+</div>
+
+<!--Script para funcionamiento de las estrellas--> 
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+<!--Agregamos Firebase y Cloud Firestore--> 
+
+<script src="https://www.gstatic.com/firebasejs/7.2.3/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/7.2.3/firebase-firestore.js"></script>
+
+
+<!--Scripts para agregar sdk firebase al proyecto--> 
+<script src="https://www.gstatic.com/firebasejs/6.2.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/6.2.0/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/3.1.0/firebase-database.js"></script>
+
+<script >
+  var firebaseConfig = {
+    apiKey: "AIzaSyAlpGzUZgETbhGYPtrS970AaYLiOPtc1HE",
+    authDomain: "minostechs-12893.firebaseapp.com",
+    databaseURL: "https://minostechs-12893.firebaseio.com",
+    projectId: "minostechs-12893",
+    storageBucket: "minostechs-12893.appspot.com",
+    messagingSenderId: "88629380348",
+    appId: "1:88629380348:web:a11fea4cfcd1783b774379",
+    measurementId: "G-5RFKNQ8DN0"
+  };
+  firebase.initializeApp(firebaseConfig);
+
+  var db = firebase.firestore();
+  var user = db.collection("user");
+  var dibuja_nombre = 0;
+
+ //var u = new Array();
+  var totalStars = 0;
+  let changes;
+  var u = new Array();
+  var i = 0;
+  var buscador = 0;
+
+  var indice=0;
+
+  //Printa la informacion actualizada
+  user.onSnapshot(snapshot =>{
+      changes = snapshot.docChanges();
+          changes.forEach(change => {
+              if (change.doc.exists) {
+                var info = change.doc.data();
+                var uid = change.doc.id;
+                  if (change.type === "added") {
+                    createStar(i, uid, info);
+                    i++;
+                  }
+                  if(change.type === "modified"){
+                        //variable para saber si se quiere buscar
+                        var search = info.search;
+                        //Muestra el nombre de la persona que se quiere buscar
+                        if(search == true){
+                            console.log("Vamos a pintar las conexiones del usuario!");
+                            buscaConexionesUsuario(uid);
+                        }
+                   }
+              } else {
+                  console.log("No such document!");
+              }
+          }).catch(function(error) {
+              console.log("Error getting document:", error);
+          })
+  });
+
+var dibuja_linea = 0;
+var user_meet = db.collection("user_meet");
+
+  //Printa la informacion actualizada de los meet
+  user_meet.onSnapshot(snapshot =>{
+        let changes = snapshot.docChanges();
+        changes.forEach(change => {
+          //Obtenemos los id
+              if (change.doc.exists) {
+                  var info = change.doc.data();
+
+                  //Obtenemos los id de los usuarios que han conectado
+                  var id1 = info.id1;
+                  var id2 = info.id2;
+                  buscarConexionesMeet(id1, id2);
+                  
+              } else {
+                  console.log("No such document!");
+              }
+          }).catch(function(error) {
+              console.log("Error getting document:", error);
+          })
+  })
+
+  function buscaConexionesUsuario(uid){
+      var db = firebase.firestore();
+      var userRef = db.collection("user");
+      var usuario = userRef.doc(uid)
+
+      usuario.get().then(function(doc) {
+          if (doc.exists) {
+              var data =  doc.data();
+              var connections = data.connections;
+              var name = data.name;
+              iluminaEstrellas(uid, name, connections);
+          } else {
+              // doc.data() will be undefined in this case
+              console.log("No such document!");
+          }
+      }).catch(function(error) {
+          console.log("Error getting document:", error);
+      });
+  }
+
+  function buscarConexionesMeet(uid1, uid2){
+        var db = firebase.firestore();
+        var userRef = db.collection("user");
+        var usuario1 = userRef.doc(uid1);
+        var usuario2 = userRef.doc(uid2)
+
+        db.collection("user").get()
+            .then(function(querySnapshot) {
+                var name1;
+                var name2;
+                var connections1;
+                var connections2;
+                querySnapshot.forEach(function(doc) {
+                    if(doc.id == uid1){
+                        connections1 = doc.data().connections;
+                        name1 = doc.data().name;
+                    } else if(doc.id == uid2){
+                        connections2 = doc.data().connections;
+                        name2 = doc.data().name;
+                    }
+                });
+                iluminaConexiones(uid1, uid2, name1, name2, connections1, connections2);
+            })
+            .catch(function(error) {
+                console.log("Error getting documents: ", error);
+            });
+  }
+
+
+</script>
+
+
+<script type="text/javascript">
+
+    var smooth = true;
+    var WIDTH=document.documentElement.clientWidth;
+    var HEIGHT=600;
+    var showFinal = false;
+    var scrollVelocity = 20;
+    var canvas;
+    var con;
+    var g;
+    var stars = new Array();
+    var lines = new Array();
+    var screenOffset = (document.documentElement.clientWidth - 427)/2;
+    var timer = 0;
+    var busca = true;
+    var id1= 0;
+    var id2 = 0;
+
+    function muestraEstrellas(uid, name, connections, inicio){
+        estrellaPrincipal = buscaEstrella(uid);
+        stars[estrellaPrincipal].r = 100;
+        stars[estrellaPrincipal].visible = true;
+        stars[estrellaPrincipal].name.visible = true;
+
+        for(var i=0; i < connections.length; i++){
+            var id_star = buscaEstrella(connections[i].uid);
+            stars[id_star].visible = true;
+            stars[id_star].r = 50;
+            stars[id_star].name.visible = true;
+            lines[i + inicio] = new Line(estrellaPrincipal, id_star);
+        }
+    }
+
+    function iluminaEstrellas(uid, name, connections){
+        ocultarTodasEstrellas();
+        muestraEstrellas(uid, name, connections, 0);
+        setTimeout(mostrarTodasEstrellas, 15000);
+    }
+
+    function iluminaConexiones(uid1, uid2, name1, name2, connections1, connections2){
+        ocultarTodasEstrellas();
+        muestraEstrellas(uid1, name1, connections1, 0);
+        muestraEstrellas(uid2, name2, connections2, connections1.length);
+        var estrellaPrincipal1 = buscaEstrella(uid1);
+        var estrellaPrincipal2 = buscaEstrella(uid2);
+        stars[estrellaPrincipal1].r = 100;
+        lines[connections1.length + connections2.length] = new Line(estrellaPrincipal1, estrellaPrincipal2);
+        setTimeout(mostrarTodasEstrellas, 15000);
+    }
+
+    function buscaEstrella(uid){
+        var starid;
+        var encontrado = false;
+        for(var i=0; i<stars.length && !encontrado; i++){
+            if(uid.trim() == stars[i].uid.trim()){
+                starid = i;
+                encontrado = true;
+            }
+        }
+        return starid;
+    }
+
+    function ocultarTodasEstrellas(){
+        for(var i=0; i < stars.length; i++){
+            stars[i].visible = false;
+            stars[i].name.visible = false;
+        }
+    }
+
+    function mostrarTodasEstrellas(){
+        lines = new Array();
+        for(var i=0; i < stars.length; i++){
+            stars[i].resetRadius();
+            stars[i].visible = true;
+            stars[i].name.visible = false;
+        }
+        ordenarEstrellas();
+    }
+
+    function ordenarEstrellas(){
+        stars.sort(function (a, b) {
+            if (a.radius > b.radius) {
+                return -1;
+            }
+            if (a.radius < b.radius) {
+                return 1;
+            }
+            return 0;
+            }
+        );
+        for(var i=0; i<3; i++){
+            stars[i].name.visible = true;
+        }
+    }
+
+    function createStar (star_id, uid, data){
+        if(data.connections == null || (typeof data.connections === 'undefined')) {
+            stars[star_id] = new Circle(uid, 0, data.name);
+        } else{
+            stars[star_id] = new Circle(uid, data.connections.length, data.name);
+        }
+        stars[star_id].init();
+        posicionFinal();
+    }
+
+    function actualizaFondo(){
+        var currentHour = new Date().getHours();
+        if (7 <= currentHour && currentHour < 20) {
+            document.body.className = "day";
+        } else {
+            document.body.className = "night";
+        }
+    }
+
+    function posicionFinal(){
+        canvas = document.getElementById('stars');
+        con = canvas.getContext('2d');
+        var aux = 0;
+        var contador1_y = -100;
+        var contador2 = 30;
+        var contador3 = 30;
+        var contador4 = 260;
+        var contador5 = 220;
+        var contador6_y = -100;
+        var contador7_y = -100;
+        var contador8 = 260;
+        var contador9 = 220;
+        var contador10_y = 115;
+        var contador10_x = 0;
+
+
+        for(var i = 0; i < stars.length; i++) {
+            aux++;
+            if(aux == 1){
+                // Curba de la R
+                setFinalPos1(i, contador1_y);
+                contador1_y += 7;
+            }else if(aux == 2){
+                // | R n
+                setFinalPos2(i, contador2);
+                contador2 += 14;
+            }else if(aux == 3){
+                // | B
+                setFinalPos3(i, contador3);
+                contador3 += 14;
+            }else if (aux == 4){
+                // _B
+                setFinalPos4(i, contador4);
+                contador4 += 5;
+            }else if(aux == 5){
+                // _R
+                setFinalPos5(i, contador5);
+                contador5 -= 6;
+            }else if(aux == 6){
+                //Curba de la B arriba
+                setFinalPos6(i, contador6_y);
+                contador6_y += 7;
+            }else if(aux == 7){
+                //Curba de la B abajo
+                setFinalPos7(i, contador7_y);
+                contador7_y += 7;
+            }else if(aux == 8){
+                //Recta arriba de la B
+                setFinalPos8(i, contador8);
+                contador8 += 5;
+            }else if(aux == 9){
+                //Recta arriba de la R
+                setFinalPos9(i, contador9);
+                contador9 -= 4;
+            }else if(aux == 10){
+                //Recta diagonal de la R
+                /*
+                setFinalPos10(i, contador10_y, contador10_x);
+                contador10_y -= 3;
+                contador10_x += 9;
+                aux=0;
+                */
+                setFinalPos11(i, contador10_x);
+                contador10_x += 2.2;
+                aux=0;
+            }
+        }
+        setInterval(draw,60);
+    }
+
+
+    //setup
+    $(document).ready(function(){
+
+    });
+
+
+    //controls
+    window.addEventListener("keydown", smoothness, false);
+    function smoothness(e) {
+        if (e.keyCode==83) {
+            if (smooth) {
+                smooth = false;
+            } else {
+                smooth = true;
+            }
+        }
+    }
+
+    window.addEventListener("mousewheel", MouseWheelHandler, false);
+    window.addEventListener("DOMMouseScroll", MouseWheelHandler, false);
+    function MouseWheelHandler(e) {
+
+        var e = window.event || e; // old IE support
+        var delta = Math.max(-30, Math.min(60, (e.wheelDelta || -e.detail)));
+
+        if (delta > 0) {
+            showFinal=false;
+            for(var i = 0; i < stars.length; i++) {
+                stars[i].reseting = true;
+            }
+        } else {
+            showFinal=true;
+        }
+
+        for(var i = 0; i < stars.length; i++) {
+            stars[i].move();
+        }
+
+        e.preventDefault();
+    }
+
+    window.addEventListener("keydown", keyDown, false);
+    function keyDown(e) {
+        var keyCode = e.keyCode;
+
+        if (keyCode==38) {
+            //up
+            showFinal = false;
+            for(var i = 0; i < stars.length; i++) {
+                stars[i].reseting = true;
+            }
+        }
+
+        if (keyCode==40) {
+            //down
+            showFinal = true;
+        }
+        /*
+        for(var i = 0; i < stars.length; i++) {
+            stars[i].move();
+        }
+        */
+        e.preventDefault();
+    }
+
+    //iterated 'frames'
+    function draw() {
+        con.clearRect(0,0,WIDTH,HEIGHT);
+        actualizaFondo();
+        for(var i = 0; i < stars.length; i++) {
+            stars[i].draw();
+        }
+        if(lines.length > 0){
+            for(var i = 0; i < lines.length; i++){
+                lines[i].draw();
+            }
+        }
+    }
+
+    function Nombre (nombre){
+        this.visible = false;
+        this.nombre = nombre;
+        this.showName = function(posX, posY, radius){
+            if(this.visible){
+                canvas = document.getElementById('stars');
+                c = canvas.getContext('2d');
+                c.fillStyle = "white";
+                c.textAlign = "center";
+                valorFuente = parseInt(radius/10)*2 + 20;
+                c.font = valorFuente + "px Verdana";
+                c.fillText(this.nombre, posX, posY + valorFuente*1.7);
+            } 
+        }
+    }
+
+    function Line(id_star1, id_star2) {
+        this.id_star1;
+        this.id_star2;
+
+        this.draw = function() {
+            var canvas = document.getElementById('stars');
+            var context = canvas.getContext('2d');
+
+            context.lineWidth = (Math.random() * 13) - 2.5;
+            context.strokeStyle = 'white';
+
+            context.beginPath();
+            var posx1 = stars[id_star1].origX;
+            var posy1 = stars[id_star1].origY;
+            var posx2 = stars[id_star2].origX;
+            var posy2 = stars[id_star2].origY;
+
+            context.moveTo(posx1,posy1);
+            context.lineTo(posx2,posy2);
+
+            context.stroke();
+            }
+    }
+
+    //star object definition
+    function Circle(uid, numConnections, name) {
+        this.name = new Nombre(name);
+        this.radius = Math.pow(Math.pow(numConnections, 10),1/9)*5 + 3;
+        this.r = this.radius;
+        this.visible = true;
+        this.uid = uid;
+        this.s = {x_speed:0.1, y_speed:0.2, radius_max:10, animSpeed:5};
+
+        this.resetRadius = function(numConnections){
+            this.r = this.radius;
+        }
+        this.init = function() {
+            this.x = this.origX = WIDTH*Math.random();
+            this.y = this.origY = HEIGHT*Math.random();
+            this.dx = (Math.random()*this.s.x_speed) * (Math.random() < .5 ? -1 : 1);
+            this.dy = (Math.random()*this.s.y_speed) * (Math.random() < .5 ? -1 : 1);
+            this.reseting = false;
+        }
+
+        this.fade = function() {
+            var pi = 3.14;
+            var frequency = 0.4;
+            timer++;
+            return 0.2*(1+Math.sin(2 * pi * frequency * timer))
+        }
+
+        this.draw = function() {
+            if(this.visible){
+                var new_opacity = this.fade();
+                con.beginPath();
+                con.arc(this.x,this.y,this.r,0,Math.PI*2,true);
+                con.closePath();
+                g = con.createRadialGradient(this.x,this.y,0,this.x,this.y,this.r);
+                g.addColorStop(0.0, 'rgba(255,255,255,1)');
+                g.addColorStop(0.2, 'rgba(255,255,255,1)');
+                g.addColorStop(0.5, 'rgba(255,255,255,'+(new_opacity)+')');
+                g.addColorStop(1.0, 'rgba(45,57,99,0)');
+                con.fillStyle = g;
+                con.fill();
+                this.name.showName(this.x, this.y, this.r);
+            }
+        }
+
+        this.move = function() {
+            if(!showFinal) {
+                if(this.reseting) {
+                    if (this.x < this.origX+50 && this.x > this.origX-50) {
+                        this.reseting = false;
+                    }
+                    //go to original position
+                    this.x += (this.origX-this.x)/this.s.animSpeed + ((this.origX-this.x)/this.s.animSpeed < this.dx ? this.dx : 0);
+                    this.y += (this.origY-this.y)/this.s.animSpeed + ((this.origY-this.y)/this.s.animSpeed < this.dy ? this.dy : 0);
+                } else {
+                    //float around
+                    this.x += 1*this.dx;
+                    this.y += 1*this.dy;
+                    if(this.x > WIDTH || this.x < 0) this.dx *= -1;
+                    if(this.y > HEIGHT || this.y < 0) this.dy *= -1;
+                }
+            } else {
+                //go to final position
+                this.x += ((this.pos.x+screenOffset)-this.x)/this.s.animSpeed;
+                this.y += ((this.pos.y)-this.y)/this.s.animSpeed;
+            }
+        }
+    }
+
+        //Curba de la R
+        function setFinalPos1(i, contador1_y){
+            pos_x = Math.pow(contador1_y, 2)/180 - 200;
+            stars[i].pos = {x:pos_x+250+Math.floor((Math.random() * 5) - 2.5), y:130+contador1_y+Math.floor((Math.random() * 5) - 2.5)};
+        }
+
+        // | R
+        function setFinalPos2(i, contador2) {
+            stars[i].pos = {x: 220 + Math.floor((Math.random() * 5) - 2.5), y: contador2 + Math.floor((Math.random() * 5) - 2.5)};
+        }
+
+        // | B
+        function setFinalPos3(i, contador3) {
+            stars[i].pos = {x:260+Math.floor((Math.random() * 5) - 2.5), y: contador3+Math.floor((Math.random() * 5) - 2.5)};
+        }
+
+        // _B
+        function setFinalPos4(i, contador4){
+            stars[i].pos = {x:contador4+Math.floor((Math.random() * 5) - 2.5), y: 430+Math.floor((Math.random() * 5) - 2.5)};
+        }
+
+        //_R
+        function setFinalPos5(i, contador5){
+            stars[i].pos = {x:contador5+Math.floor((Math.random() * 5) - 2.5), y: 430+Math.floor((Math.random() * 5) - 2.5)};
+        }
+
+        //Curba de la B arriba
+        function setFinalPos6(i, contador6_y){
+            pos_x = -Math.pow(contador6_y, 2)/180 + 210;
+            stars[i].pos = {x:pos_x+250+Math.floor((Math.random() * 5) - 2.5), y:130+contador6_y+Math.floor((Math.random() * 5) - 2.5)};
+
+        }
+
+        //Curba de la B abajo
+        function setFinalPos7(i, contador7_y){
+            pos_x = -Math.pow(contador7_y, 2)/180 + 210;
+            stars[i].pos = {x:pos_x+250+Math.floor((Math.random() * 5) - 2.5), y:330+contador7_y+Math.floor((Math.random() * 5) - 2.5)};
+        }
+
+        //Recta arriba de la B
+        function setFinalPos8(i, contador8) {
+            stars[i].pos = {x: contador8 + Math.floor((Math.random() * 5) - 2.5), y: 30 + Math.floor((Math.random() * 5) - 2.5)};
+        }
+
+        //Recta arriba de la R
+        function setFinalPos9(i, contador9){
+            stars[i].pos = {x:contador9+Math.floor((Math.random() * 5) - 2.5), y: 30+Math.floor((Math.random() * 5) - 2.5)};
+        }
+
+        //Recta diagonal de la R
+        function setFinalPos10(i, contador10_y, contador10_x) {
+            stars[i].pos = {x: contador10_x + Math.floor((Math.random() * 5) - 2.5), y: 30 + contador10_y + Math.floor((Math.random() * 5) - 2.5)};
+        }
+
+        //Recta diagonal de la R
+        function setFinalPos11(i, contador10_x) {
+            pos_y = -contador10_x*3.18+ 430;
+            stars[i].pos = {x: contador10_x +55 + Math.floor((Math.random() * 5) - 2.5), y: pos_y + Math.floor((Math.random() * 5) - 2.5)};
+        }
+</script>
+
+</body>
